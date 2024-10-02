@@ -2,7 +2,7 @@ import os
 import pytest
 from pathlib import Path
 import json
-from project.app import app, db
+from project.app import app, db, models
 TEST_DB = "test.db"
 
 
@@ -79,3 +79,27 @@ def test_delete_message(client):
     rv = client.get('/delete/1')
     data = json.loads(rv.data)
     assert data["status"] == 1
+
+def test_search_with_non_matching_query(client):
+    # Create a post in the database with title and text
+    post = models.Post(title="Test Post", text="This is a test post")
+    db.session.add(post)
+    db.session.commit()
+
+    # Search with a query that does not match the post
+    response = client.get('/search/?query=nothing')
+    assert response.status_code == 200
+    assert b'Test Post' not in response.data  # Ensure the post title does not appear
+    assert b'This is a test post' not in response.data  # Ensure the post text does not appear
+
+def test_search_with_matching_query(client):
+    # Create a post in the database with title and text
+    post = models.Post(title="Test Post", text="This is a test post")
+    db.session.add(post)
+    db.session.commit()
+
+    # Search with a query that matches the post
+    response = client.get('/search/?query=test')
+    assert response.status_code == 200
+    assert b'Test Post' in response.data  # Check if the post title appears
+    assert b'This is a test post' in response.data  # Check if the post text appears
