@@ -3,6 +3,7 @@ import pytest
 from pathlib import Path
 import json
 from project.app import app, db, models
+
 TEST_DB = "test.db"
 
 
@@ -74,11 +75,13 @@ def test_messages(client):
     assert b"&lt;Hello&gt;" in rv.data
     assert b"<strong>HTML</strong> allowed here" in rv.data
 
+
 def test_delete_message(client):
     """Ensure the messages are being deleted"""
-    rv = client.get('/delete/1')
+    rv = client.get("/delete/1")
     data = json.loads(rv.data)
     assert data["status"] == 1
+
 
 def test_search_with_non_matching_query(client):
     # Create a post in the database with title and text
@@ -87,10 +90,13 @@ def test_search_with_non_matching_query(client):
     db.session.commit()
 
     # Search with a query that does not match the post
-    response = client.get('/search/?query=nothing')
+    response = client.get("/search/?query=nothing")
     assert response.status_code == 200
-    assert b'Test Post' not in response.data  # Ensure the post title does not appear
-    assert b'This is a test post' not in response.data  # Ensure the post text does not appear
+    assert b"Test Post" not in response.data  # Ensure the post title does not appear
+    assert (
+        b"This is a test post" not in response.data
+    )  # Ensure the post text does not appear
+
 
 def test_search_with_matching_query(client):
     # Create a post in the database with title and text
@@ -99,42 +105,43 @@ def test_search_with_matching_query(client):
     db.session.commit()
 
     # Search with a query that matches the post
-    response = client.get('/search/?query=test')
+    response = client.get("/search/?query=test")
     assert response.status_code == 200
-    assert b'Test Post' in response.data  # Check if the post title appears
-    assert b'This is a test post' in response.data  # Check if the post text appears
+    assert b"Test Post" in response.data  # Check if the post title appears
+    assert b"This is a test post" in response.data  # Check if the post text appears
+
 
 def test_protected_delete_route_without_login(client):
     """Ensure the delete route is not accessible without login"""
     # Attempt to access the delete route without logging in
-    response = client.get('/delete/1')  # Assuming post with ID 1 exists
-    
+    response = client.get("/delete/1")  # Assuming post with ID 1 exists
+
     # Verify that the status code is 401 (Unauthorized)
     assert response.status_code == 401
-    
+
     # Parse the JSON response and check for the correct message
     data = json.loads(response.data)
-    assert data['status'] == 0
-    assert data['message'] == 'Please log in.'
+    assert data["status"] == 0
+    assert data["message"] == "Please log in."
+
 
 def test_protected_delete_route_with_login(client):
     """Ensure the delete route is accessible when logged in"""
-    
+
     # Log in the user by setting session data
     with client.session_transaction() as sess:
-        sess['logged_in'] = True
-    
+        sess["logged_in"] = True
+
     # Attempt to access the delete route
-    response = client.get('/delete/1')  # Assuming post with ID 1 exists
-    
+    response = client.get("/delete/1")  # Assuming post with ID 1 exists
+
     # Verify that the status code is 200 (OK)
     assert response.status_code == 200
-    
+
     # Parse the JSON response and check for the correct message
     data = json.loads(response.data)
-    assert data['status'] == 1
-    assert data['message'] == 'Post Deleted'
-
+    assert data["status"] == 1
+    assert data["message"] == "Post Deleted"
 
 
 def test_delete_message(client):
