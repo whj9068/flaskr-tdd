@@ -103,3 +103,46 @@ def test_search_with_matching_query(client):
     assert response.status_code == 200
     assert b'Test Post' in response.data  # Check if the post title appears
     assert b'This is a test post' in response.data  # Check if the post text appears
+
+def test_protected_delete_route_without_login(client):
+    """Ensure the delete route is not accessible without login"""
+    # Attempt to access the delete route without logging in
+    response = client.get('/delete/1')  # Assuming post with ID 1 exists
+    
+    # Verify that the status code is 401 (Unauthorized)
+    assert response.status_code == 401
+    
+    # Parse the JSON response and check for the correct message
+    data = json.loads(response.data)
+    assert data['status'] == 0
+    assert data['message'] == 'Please log in.'
+
+def test_protected_delete_route_with_login(client):
+    """Ensure the delete route is accessible when logged in"""
+    
+    # Log in the user by setting session data
+    with client.session_transaction() as sess:
+        sess['logged_in'] = True
+    
+    # Attempt to access the delete route
+    response = client.get('/delete/1')  # Assuming post with ID 1 exists
+    
+    # Verify that the status code is 200 (OK)
+    assert response.status_code == 200
+    
+    # Parse the JSON response and check for the correct message
+    data = json.loads(response.data)
+    assert data['status'] == 1
+    assert data['message'] == 'Post Deleted'
+
+
+
+def test_delete_message(client):
+    """Ensure the messages are being deleted"""
+    rv = client.get("/delete/1")
+    data = json.loads(rv.data)
+    assert data["status"] == 0
+    login(client, app.config["USERNAME"], app.config["PASSWORD"])
+    rv = client.get("/delete/1")
+    data = json.loads(rv.data)
+    assert data["status"] == 1
